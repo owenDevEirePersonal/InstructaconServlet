@@ -103,7 +103,7 @@ public class ICServlet extends HttpServlet {
 		         // Execute SQL query
 		         stmt = conn.createStatement();
 		         String sql;
-		         sql = "SELECT DISTINCT alert FROM alerts where stationID = '" + inStationID + "' AND isActive = true;";
+		         sql = "SELECT DISTINCT alert FROM alerts where isActive = true;";
 		         ResultSet rs = stmt.executeQuery(sql);
 		         
 		         ArrayList<String> returnAlerts = new ArrayList<String>();         
@@ -131,8 +131,9 @@ public class ICServlet extends HttpServlet {
 		         //out.println("Returning IDS");
 		         out.println(jsonOut);
 		         
+		         
 		         sql = "UPDATE alerts set isActive = false where stationID = '" + inStationID + "' AND isActive = true;";
-		         stmt.executeQuery(sql);
+		         stmt.executeUpdate(sql);
 
 		         // Clean-up environment
 		         rs.close();
