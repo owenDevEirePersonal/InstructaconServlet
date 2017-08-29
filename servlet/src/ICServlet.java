@@ -71,6 +71,16 @@ public class ICServlet extends HttpServlet {
 						}
 					break;
 					
+					case "addalert":
+						if(request.getParameter("stationid") != null && request.getParameter("alerttext") != null && request.getParameter("alerttype") != null)
+						{
+							String stationID = request.getParameter("stationid");
+							String alertText = request.getParameter("alerttext").replaceAll("_", " ");
+							String alertType = request.getParameter("alerttype");
+							addAlertForStationOfType(stationID, alertType, alertText);
+						}
+						break;
+					
 					default: out.println("Error: Unknown Command"); break;
 				}
 			}
@@ -273,6 +283,74 @@ public class ICServlet extends HttpServlet {
 		}
 		
 		
-		
+		private void addAlertForStationOfType(String inStationID, String inAlertType, String inAlertText)
+		{
+			// JDBC driver name and database URL
+		    final String JDBC_DRIVER="com.mysql.jdbc.Driver";  
+		    final String DB_URL="jdbc:mysql://localhost/InstructaconDatabase";
+		    
+		    //  Database credentials
+		    final String USER = "user";
+		    final String PASS = "";
+		    Statement stmt = null;
+		    Connection conn = null;
+		    
+		    int count = 0;
+		    
+		    try
+		    {
+		         // Register JDBC driver
+		         Class.forName("com.mysql.jdbc.Driver");
+
+		         // Open a connection
+		         conn = DriverManager.getConnection(DB_URL, USER, PASS);
+
+		         // Execute SQL query
+		         stmt = conn.createStatement();
+		         String sql = "";
+		       
+		         
+		         switch(inAlertType)
+		         {
+		        	 case "security": sql = "insert into securityAlerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; break;
+		        	 case "janitor": sql = "insert into alerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; break;
+		        	 default: out.println("Error: Unknown Alert Type");
+		         }
+		         stmt.executeUpdate(sql);
+
+		         // Clean-up environment
+		         stmt.close();
+		         conn.close();
+		    }
+		    catch(SQLException se)
+		    {
+		         //Handle errors for JDBC
+		         se.printStackTrace();
+		    }
+		    catch(Exception e)
+		    {
+		         //Handle errors for Class.forName
+		         e.printStackTrace();
+		    }
+		    finally
+		    {
+		         //finally block used to close resources
+		         try
+		         {
+		            if(stmt!=null){stmt.close();};
+		         }
+		         catch(SQLException se2)
+		         {
+		         }// nothing we can do
+		         try
+		         {
+		            if(conn!=null){conn.close();}
+		         }
+		         catch(SQLException se)
+		         {
+		            se.printStackTrace();
+		         }//end finally try
+		     } //end try
+		}
 		
 }
