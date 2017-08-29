@@ -53,18 +53,26 @@ public class ICServlet extends HttpServlet {
 			//out.println("Starting");
 			if(request.getParameter("request") != null)
 			{
-			switch(request.getParameter("request").toLowerCase())
-			{
-				case "getalertsfor":
-					if(request.getParameter("stationid") != null)
-					{
-						String stationID = request.getParameter("stationid");
-						getAlertsForStation(stationID);
-					}
-				break;
+				switch(request.getParameter("request").toLowerCase())
+				{
+					case "getalertsfor":
+						if(request.getParameter("stationid") != null)
+						{
+							String stationID = request.getParameter("stationid");
+							getAlertsForStation(stationID);
+						}
+					break;
 				
-				default: out.println("Error: Unknown Command"); break;
-			}
+					case "getsecurityalertsfor":
+						if(request.getParameter("stationid") != null)
+						{
+							String stationID = request.getParameter("stationid");
+							getSecurityAlertsForStation(stationID);
+						}
+					break;
+					
+					default: out.println("Error: Unknown Command"); break;
+				}
 			}
 			else
 			{
@@ -133,6 +141,99 @@ public class ICServlet extends HttpServlet {
 		         
 		         
 		         sql = "UPDATE alerts set isActive = false where stationID = '" + inStationID + "' AND isActive = true;";
+		         stmt.executeUpdate(sql);
+
+		         // Clean-up environment
+		         rs.close();
+		         stmt.close();
+		         conn.close();
+		    }
+		    catch(SQLException se)
+		    {
+		         //Handle errors for JDBC
+		         se.printStackTrace();
+		    }
+		    catch(Exception e)
+		    {
+		         //Handle errors for Class.forName
+		         e.printStackTrace();
+		    }
+		    finally
+		    {
+		         //finally block used to close resources
+		         try
+		         {
+		            if(stmt!=null){stmt.close();};
+		         }
+		         catch(SQLException se2)
+		         {
+		         }// nothing we can do
+		         try
+		         {
+		            if(conn!=null){conn.close();}
+		         }
+		         catch(SQLException se)
+		         {
+		            se.printStackTrace();
+		         }//end finally try
+		     } //end try
+		}
+		
+		private void getSecurityAlertsForStation(String inStationID)
+		{
+			// JDBC driver name and database URL
+		    final String JDBC_DRIVER="com.mysql.jdbc.Driver";  
+		    final String DB_URL="jdbc:mysql://localhost/InstructaconDatabase";
+		    
+		    //  Database credentials
+		    final String USER = "user";
+		    final String PASS = "";
+		    Statement stmt = null;
+		    Connection conn = null;
+		    
+		    int count = 0;
+		    
+		    try
+		    {
+		         // Register JDBC driver
+		         Class.forName("com.mysql.jdbc.Driver");
+
+		         // Open a connection
+		         conn = DriverManager.getConnection(DB_URL, USER, PASS);
+
+		         // Execute SQL query
+		         stmt = conn.createStatement();
+		         String sql;
+		         sql = "SELECT DISTINCT alert FROM securityAlerts where isActive = true;";
+		         ResultSet rs = stmt.executeQuery(sql);
+		         
+		         ArrayList<String> returnAlerts = new ArrayList<String>();         
+
+
+		         // Extract data from result set
+		         while(rs.next())
+		         {
+		        	 count++;
+		            //Retrieve by column name
+		        	 //out.print("checking id " + rs.getInt("id"));
+		        	 String currentAlert = rs.getString("alert");
+		        	 returnAlerts.add(currentAlert);		        	 
+		         }
+		         
+		         JSONArray jsonOut = new JSONArray();
+		         int i = 0;
+		         for(String aAlert: returnAlerts)
+		         {
+		        	 i++;
+		        	 JSONObject obj = new JSONObject();
+		        	 obj.put("alert", "Alert " + i + ". " + aAlert);
+		        	 jsonOut.add(obj);
+		         }
+		         //out.println("Returning IDS");
+		         out.println(jsonOut);
+		         
+		         
+		         sql = "UPDATE securityAlerts set isActive = false where stationID = '" + inStationID + "' AND isActive = true;";
 		         stmt.executeUpdate(sql);
 
 		         // Clean-up environment
