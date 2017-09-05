@@ -56,29 +56,35 @@ public class ICServlet extends HttpServlet {
 				switch(request.getParameter("request").toLowerCase())
 				{
 					case "getalertsfor":
-						if(request.getParameter("stationid") != null)
+						if(request.getParameter("stationid") != null && request.getParameter("tagid") != null)
 						{
-							String stationID = request.getParameter("stationid");
-							getAlertsForStation(stationID);
+							String stationID = request.getParameter("stationid").replaceAll("_", " ");
+							String tagID = request.getParameter("tagid"); //.replaceAll("", " ");
+							getAlertsForStation(stationID, tagID);
 						}
 					break;
 				
 					case "getsecurityalertsfor":
-						if(request.getParameter("stationid") != null)
+						if(request.getParameter("stationid") != null && request.getParameter("tagid") != null)
 						{
-							String stationID = request.getParameter("stationid");
-							getSecurityAlertsForStation(stationID);
+							String stationID = request.getParameter("stationid").replaceAll("_", " ");
+							String tagID = request.getParameter("tagid"); //.replaceAll("", " ");
+							getSecurityAlertsForStation(stationID, tagID);
 						}
 					break;
 					
 					case "addalert":
 						if(request.getParameter("stationid") != null && request.getParameter("alerttext") != null && request.getParameter("alerttype") != null)
 						{
-							String stationID = request.getParameter("stationid");
+							String stationID = request.getParameter("stationid").replaceAll("_", " ");
 							String alertText = request.getParameter("alerttext").replaceAll("_", " ");
 							String alertType = request.getParameter("alerttype");
 							addAlertForStationOfType(stationID, alertType, alertText);
 						}
+						break;
+						
+					case "getlatestsignins":
+						getLatestSignins();
 						break;
 					
 					default: out.println("Error: Unknown Command"); break;
@@ -96,7 +102,7 @@ public class ICServlet extends HttpServlet {
 			doGet(request, response);
 		}
 		
-		private void getAlertsForStation(String inStationID)
+		private void getAlertsForStation(String inStationID, String inTagID)
 		{
 			// JDBC driver name and database URL
 		    final String JDBC_DRIVER="com.mysql.jdbc.Driver";  
@@ -121,6 +127,15 @@ public class ICServlet extends HttpServlet {
 		         // Execute SQL query
 		         stmt = conn.createStatement();
 		         String sql;
+		         
+		         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		         java.util.Date currentTimeStamp = new java.util.Date();
+		         
+		         sql = "insert into signins (stationID, tagID, timestamp) VALUES ('" + inStationID + "', '" + inTagID + "', '" + dateFormat.format(currentTimeStamp) + "');";
+		         stmt.executeUpdate(sql);
+		         
+		         
+		         
 		         sql = "SELECT DISTINCT alert FROM alerts where isActive = true;";
 		         ResultSet rs = stmt.executeQuery(sql);
 		         
@@ -189,7 +204,7 @@ public class ICServlet extends HttpServlet {
 		     } //end try
 		}
 		
-		private void getSecurityAlertsForStation(String inStationID)
+		private void getSecurityAlertsForStation(String inStationID, String inTagID)
 		{
 			// JDBC driver name and database URL
 		    final String JDBC_DRIVER="com.mysql.jdbc.Driver";  
@@ -214,6 +229,14 @@ public class ICServlet extends HttpServlet {
 		         // Execute SQL query
 		         stmt = conn.createStatement();
 		         String sql;
+		         
+		         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		         java.util.Date currentTimeStamp = new java.util.Date();
+		         
+		         sql = "insert into signins(stationID, tagID, timestamp) VALUES ('" + inStationID + "', '" + inTagID + "', '" + dateFormat.format(currentTimeStamp) + "');";
+		         stmt.executeUpdate(sql);
+		         
+		         
 		         sql = "SELECT DISTINCT alert FROM securityAlerts where isActive = true;";
 		         ResultSet rs = stmt.executeQuery(sql);
 		         
@@ -282,7 +305,6 @@ public class ICServlet extends HttpServlet {
 		     } //end try
 		}
 		
-		
 		private void addAlertForStationOfType(String inStationID, String inAlertType, String inAlertText)
 		{
 			// JDBC driver name and database URL
@@ -312,8 +334,14 @@ public class ICServlet extends HttpServlet {
 		         
 		         switch(inAlertType)
 		         {
-		        	 case "security": sql = "insert into securityAlerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; break;
-		        	 case "janitor": sql = "insert into alerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; break;
+		        	 case "security": 
+		        		 sql = "insert into securityAlerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; 
+		        		 break;
+		        		 
+		        	 case "janitor": 
+		        		 sql = "insert into alerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; 
+		        		 break;
+		        		 
 		        	 default: out.println("Error: Unknown Alert Type");
 		         }
 		         stmt.executeUpdate(sql);
@@ -353,4 +381,109 @@ public class ICServlet extends HttpServlet {
 		     } //end try
 		}
 		
+		
+		private void getLatestSignins()
+		{
+			// JDBC driver name and database URL
+		    final String JDBC_DRIVER="com.mysql.jdbc.Driver";  
+		    final String DB_URL="jdbc:mysql://localhost/InstructaconDatabase";
+		    
+		    //  Database credentials
+		    final String USER = "user";
+		    final String PASS = "";
+		    Statement stmt = null;
+		    Connection conn = null;
+		    
+		    int count = 0;
+		    
+		    try
+		    {
+		         // Register JDBC driver
+		         Class.forName("com.mysql.jdbc.Driver");
+
+		         // Open a connection
+		         conn = DriverManager.getConnection(DB_URL, USER, PASS);
+
+		         // Execute SQL query
+		         stmt = conn.createStatement();
+		         String sql;
+		         
+		         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		         java.util.Date currentTimeStamp = new java.util.Date();
+		         
+		         
+		     
+		         sql = "select * from signins a where a.timestamp = (select max(b.timestamp) from signins b where a.tagID = b.tagID);";
+		         ResultSet rs = stmt.executeQuery(sql);
+		         
+		         ArrayList<String> returnStations = new ArrayList<String>(); 
+		         ArrayList<String> returnTags = new ArrayList<String>(); 
+		         ArrayList<String> returnTimestamps = new ArrayList<String>(); 
+
+
+		         // Extract data from result set
+		         while(rs.next())
+		         {
+		        	 count++;
+		            //Retrieve by column name
+		        	 //out.print("checking id " + rs.getInt("id"));
+		        	 String currentStation = rs.getString("stationID");
+		        	 String currentTagID = rs.getString("tagID");
+		        	 String currentTimestamp = rs.getDate("timestamp").toString();
+		        	 returnStations.add(currentStation);	
+		        	 returnTags.add(currentTagID);
+		        	 returnTimestamps.add(currentTimestamp);
+		         }
+		         
+		         JSONArray jsonOut = new JSONArray();
+		         int i = 0;
+		         for(String aStationID: returnStations)
+		         {
+		        	 
+		        	 JSONObject obj = new JSONObject();
+		        	 obj.put("stationID", aStationID);
+		        	 obj.put("tagID", returnTags.get(i));
+		        	 obj.put("timestamp", returnTimestamps.get(i));
+		        	 jsonOut.add(obj);
+		        	 i++;
+		         }
+		         //out.println("Returning IDS");
+		         out.println(jsonOut);
+		         
+
+		         // Clean-up environment
+		         rs.close();
+		         stmt.close();
+		         conn.close();
+		    }
+		    catch(SQLException se)
+		    {
+		         //Handle errors for JDBC
+		         se.printStackTrace();
+		    }
+		    catch(Exception e)
+		    {
+		         //Handle errors for Class.forName
+		         e.printStackTrace();
+		    }
+		    finally
+		    {
+		         //finally block used to close resources
+		         try
+		         {
+		            if(stmt!=null){stmt.close();};
+		         }
+		         catch(SQLException se2)
+		         {
+		         }// nothing we can do
+		         try
+		         {
+		            if(conn!=null){conn.close();}
+		         }
+		         catch(SQLException se)
+		         {
+		            se.printStackTrace();
+		         }//end finally try
+		     } //end try
+		}
 }
