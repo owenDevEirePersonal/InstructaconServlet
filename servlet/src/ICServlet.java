@@ -133,6 +133,8 @@ public class ICServlet extends HttpServlet {
 		         
 		         sql = "insert into signins (stationID, tagID, timestamp) VALUES ('" + inStationID + "', '" + inTagID + "', '" + dateFormat.format(currentTimeStamp) + "');";
 		         stmt.executeUpdate(sql);
+		         		         
+		         
 		         
 		         
 		         
@@ -153,6 +155,13 @@ public class ICServlet extends HttpServlet {
 		         }
 		         
 		         JSONArray jsonOut = new JSONArray();
+		         
+		         //Add the name assocaited with the tag to the start of the json set.
+		         JSONObject nameObj = new JSONObject();
+		         nameObj.put("name", getNameForTag(inTagID, conn, stmt));
+		         jsonOut.add(nameObj);
+		         
+		         
 		         int i = 0;
 		         for(String aAlert: returnAlerts)
 		         {
@@ -254,6 +263,12 @@ public class ICServlet extends HttpServlet {
 		         }
 		         
 		         JSONArray jsonOut = new JSONArray();
+		         
+		       //Add the name assocaited with the tag to the start of the json set.
+		         JSONObject nameObj = new JSONObject();
+		         nameObj.put("name", getNameForTag(inTagID, conn, stmt));
+		         jsonOut.add(nameObj);
+		         
 		         int i = 0;
 		         for(String aAlert: returnAlerts)
 		         {
@@ -413,11 +428,11 @@ public class ICServlet extends HttpServlet {
 		         
 		         
 		     
-		         sql = "select * from signins a where a.timestamp = (select max(b.timestamp) from signins b where a.tagID = b.tagID);";
+		         sql = "select t3.name, t1.stationID, t1.timestamp from signins t1 join (tags t3) on (t1.tagID = t3.tagID) where t1.timestamp = (select max(t2.timestamp) from signins t2 where t1.tagID = t2.tagID);";
 		         ResultSet rs = stmt.executeQuery(sql);
 		         
 		         ArrayList<String> returnStations = new ArrayList<String>(); 
-		         ArrayList<String> returnTags = new ArrayList<String>(); 
+		         ArrayList<String> returnNames = new ArrayList<String>(); 
 		         ArrayList<String> returnTimestamps = new ArrayList<String>(); 
 
 
@@ -427,11 +442,11 @@ public class ICServlet extends HttpServlet {
 		        	 count++;
 		            //Retrieve by column name
 		        	 //out.print("checking id " + rs.getInt("id"));
-		        	 String currentStation = rs.getString("stationID");
-		        	 String currentTagID = rs.getString("tagID");
-		        	 String currentTimestamp = rs.getDate("timestamp").toString();
+		        	 String currentStation = rs.getString("t1.stationID");
+		        	 String currentName = rs.getString("t3.name");
+		        	 String currentTimestamp = rs.getDate("t1.timestamp").toString();
 		        	 returnStations.add(currentStation);	
-		        	 returnTags.add(currentTagID);
+		        	 returnNames.add(currentName);
 		        	 returnTimestamps.add(currentTimestamp);
 		         }
 		         
@@ -442,7 +457,7 @@ public class ICServlet extends HttpServlet {
 		        	 
 		        	 JSONObject obj = new JSONObject();
 		        	 obj.put("stationID", aStationID);
-		        	 obj.put("tagID", returnTags.get(i));
+		        	 obj.put("name", returnNames.get(i));
 		        	 obj.put("timestamp", returnTimestamps.get(i));
 		        	 jsonOut.add(obj);
 		        	 i++;
@@ -485,5 +500,57 @@ public class ICServlet extends HttpServlet {
 		            se.printStackTrace();
 		         }//end finally try
 		     } //end try
+		}
+		
+		private String getNameForTag(String tagID, Connection conn, Statement stmt)
+		{
+			// JDBC driver name and database URL
+		    final String JDBC_DRIVER="com.mysql.jdbc.Driver";  
+		    final String DB_URL="jdbc:mysql://localhost/InstructaconDatabase";
+		    
+		    //  Database credentials
+		    final String USER = "user";
+		    final String PASS = "";
+		    
+		    int count = 0;
+		    
+		    try
+		    {
+
+
+		         // Execute SQL query
+		         stmt = conn.createStatement();
+		         String sql;
+		         
+		         
+		     
+		         sql = "select name from tags where tagID = '" + tagID + "';";
+		         ResultSet rs = stmt.executeQuery(sql);
+		         
+		         // Extract data from result set
+		         while(rs.next())
+		         {
+		        	 String result = rs.getString("name");
+		        	 rs.close();
+		        	 return result;
+		         }
+		         
+		         return "No Name Found";
+		    }
+		    catch(SQLException se)
+		    {
+		         //Handle errors for JDBC
+		         se.printStackTrace();
+		    }
+		    catch(Exception e)
+		    {
+		         //Handle errors for Class.forName
+		         e.printStackTrace();
+		    }
+		    finally
+		    {
+		         //finally block used to close resources
+		    } //end try
+		    return "This should never be returned";
 		}
 }
