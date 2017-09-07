@@ -86,6 +86,16 @@ public class ICServlet extends HttpServlet {
 					case "getlatestsignins":
 						getLatestSignins();
 						break;
+						
+					case "addemployee":
+						if(request.getParameter("empid") != null && request.getParameter("empname") != null && request.getParameter("emptype") != null)
+						{
+							String empID = request.getParameter("empid").replaceAll("_", " ");
+							String empName = request.getParameter("empname").replaceAll("_", " ");
+							String empType = request.getParameter("emptype").replaceAll("_", " ");
+							addEmployee(empID, empName, empType);
+						}
+						break;
 					
 					default: out.println("Error: Unknown Command"); break;
 				}
@@ -136,10 +146,16 @@ public class ICServlet extends HttpServlet {
 		         		         
 		         
 		         
-		         
-		         
-		         sql = "SELECT DISTINCT alert FROM alerts where isActive = true;";
+		         sql = "select type from tags where tagID ='" + inTagID + "';";
 		         ResultSet rs = stmt.executeQuery(sql);
+		         String currentType = "";
+		         if(rs.next())
+		         {
+		        	 currentType = rs.getString("type");
+		         }
+		         
+		         sql = "SELECT DISTINCT t1.alert FROM alerts t1 where t1.isActive = true AND t1.type = '" + currentType + "';";
+		         rs = stmt.executeQuery(sql);
 		         
 		         ArrayList<String> returnAlerts = new ArrayList<String>();         
 
@@ -160,6 +176,10 @@ public class ICServlet extends HttpServlet {
 		         JSONObject nameObj = new JSONObject();
 		         nameObj.put("name", getNameForTag(inTagID, conn, stmt));
 		         jsonOut.add(nameObj);
+		         
+		         JSONObject typeObj = new JSONObject();
+		         typeObj.put("type", currentType);
+		         jsonOut.add(typeObj);
 		         
 		         
 		         int i = 0;
@@ -347,18 +367,9 @@ public class ICServlet extends HttpServlet {
 		         String sql = "";
 		       
 		         
-		         switch(inAlertType)
-		         {
-		        	 case "security": 
-		        		 sql = "insert into securityAlerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; 
-		        		 break;
+		         sql = "insert into alerts(stationID, alert, type, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', '" + inAlertType + "', true);"; 
 		        		 
-		        	 case "janitor": 
-		        		 sql = "insert into alerts(stationID, alert, isActive) VALUES ('" + inStationID + "', '" + inAlertText + "', true)"; 
-		        		 break;
-		        		 
-		        	 default: out.println("Error: Unknown Alert Type");
-		         }
+		         
 		         stmt.executeUpdate(sql);
 
 		         // Clean-up environment
@@ -552,5 +563,82 @@ public class ICServlet extends HttpServlet {
 		         //finally block used to close resources
 		    } //end try
 		    return "This should never be returned";
+		}
+		
+		
+		private void addEmployee(String inTagID, String inName, String inType)
+		{
+			// JDBC driver name and database URL
+		    final String JDBC_DRIVER="com.mysql.jdbc.Driver";  
+		    final String DB_URL="jdbc:mysql://localhost/InstructaconDatabase";
+		    
+		    //  Database credentials
+		    final String USER = "user";
+		    final String PASS = "";
+		    Statement stmt = null;
+		    Connection conn = null;
+		    
+		    int count = 0;
+		    
+		    try
+		    {
+		         // Register JDBC driver
+		         Class.forName("com.mysql.jdbc.Driver");
+
+		         // Open a connection
+		         conn = DriverManager.getConnection(DB_URL, USER, PASS);
+
+		         // Execute SQL query
+		         stmt = conn.createStatement();
+		         String sql = "";
+		         sql = "select * from tags where tagID='" + inTagID + "';";
+		         ResultSet rs = stmt.executeQuery(sql);
+		         if(rs.next())
+		         {
+		        	 sql = "UPDATE tags SET name='" + inName + "', type = '" + inType + "' WHERE tagID = '" + inTagID + "';";
+		         }
+		         else
+		         {
+		        	 sql = "INSERT INTO tags(tagID, name, type) VALUES ('" + inTagID + "', '" + inName + "', '" + inType + "');"; 
+		         }
+		         
+		         
+
+		         stmt.executeUpdate(sql);
+
+		         // Clean-up environment
+		         stmt.close();
+		         conn.close();
+		         out.println("Successfully updated tags");
+		    }
+		    catch(SQLException se)
+		    {
+		         //Handle errors for JDBC
+		         se.printStackTrace();
+		    }
+		    catch(Exception e)
+		    {
+		         //Handle errors for Class.forName
+		         e.printStackTrace();
+		    }
+		    finally
+		    {
+		         //finally block used to close resources
+		         try
+		         {
+		            if(stmt!=null){stmt.close();};
+		         }
+		         catch(SQLException se2)
+		         {
+		         }// nothing we can do
+		         try
+		         {
+		            if(conn!=null){conn.close();}
+		         }
+		         catch(SQLException se)
+		         {
+		            se.printStackTrace();
+		         }//end finally try
+		     } //end try
 		}
 }
